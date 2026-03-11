@@ -34,7 +34,7 @@
 
     <section class="timer-section" id="timer">
         <div class="timer-card">
-            <div class="match-status" id="status-label">NEXT MATCH</div>
+            <div class="match-status" id="status-label">UPCOMING FIXTURE</div>
             <h2 class="match-title">BARÇA <span class="gold-text">VS</span> <span id="opponent-name">VILLARREAL</span></h2>
             <p class="match-meta" id="match-date-display">Saturday, 28 Feb 2026 • 20:45 IST</p>
             
@@ -68,22 +68,6 @@
                 <div class="trophy-card"><img src="liga.png" alt="La Liga"><h4>28 La Liga</h4></div>
                 <div class="trophy-card"><img src="copa.png" alt="Copa del Rey"><h4>32 Copa del Rey</h4></div>
             </div>
-
-            <h2 class="section-title" style="margin-top: 50px;">Historical Records</h2>
-            <div class="table-wrapper">
-                <table class="pro-table">
-                    <thead>
-                        <tr><th>Season</th><th>Silverware Won</th><th>Top Scorer</th></tr>
-                    </thead>
-                    <tbody>
-                        <tr><td>2024-25</td><td>🏆 La Liga, 🏆 Copa del Rey</td><td>Lewandowski</td></tr>
-                        <tr><td>2023-24</td><td class="trophyless">Gone trophyless this season</td><td>Lewandowski</td></tr>
-                        <tr><td>2022-23</td><td>🏆 La Liga, 🏆 Spanish Super Cup</td><td>Lewandowski</td></tr>
-                        <tr><td>2021-22</td><td class="trophyless">Gone trophyless this season</td><td>Memphis Depay</td></tr>
-                        <tr><td>2020-21</td><td>🏆 Copa del Rey</td><td>Lionel Messi</td></tr>
-                    </tbody>
-                </table>
-            </div>
         </section>
     </main>
 
@@ -91,7 +75,8 @@
 
     <script>
         let countdownInterval;
-        let defaultMatchTime = new Date('2026-02-28T20:45:00').getTime();
+        // Default match if API fails
+        const FALLBACK_TIME = new Date('2026-02-28T20:45:00').getTime();
 
         async function updateMatchCenter() {
             const apiKey = '38355029a465447bab7a203cb102e058';
@@ -116,28 +101,39 @@
                     document.getElementById('match-date-display').innerText = new Date(currentMatch.utcDate).toLocaleString();
 
                     if (liveMatch) {
-                        document.getElementById('status-label').innerText = "MATCH LIVE";
-                        document.getElementById('status-label').classList.add('live-active');
-                        document.getElementById('timer-display').innerHTML = `<h3 class="live-msg">THE GAME IS IN PROGRESS</h3>`;
+                        showLiveState();
                     } else {
                         document.getElementById('status-label').innerText = "NEXT MATCH";
                         startCountdown(matchTime);
                     }
                 } else {
-                    startCountdown(defaultMatchTime);
+                    startCountdown(FALLBACK_TIME);
                 }
             } catch (e) {
-                // If API fails, stay on default Villarreal timer
-                startCountdown(defaultMatchTime);
+                // Keep default Villarreal details if API fails
+                startCountdown(FALLBACK_TIME);
             }
+        }
+
+        function showLiveState() {
+            document.getElementById('status-label').innerText = "MATCH LIVE";
+            document.getElementById('status-label').style.color = "#ff0000";
+            document.getElementById('timer-display').innerHTML = `<h3 style="grid-column: span 4; font-size: 2rem; color: #edbb00;">THE GAME IS ONGOING!</h3>`;
         }
 
         function startCountdown(endTime) {
             if (countdownInterval) clearInterval(countdownInterval);
+            
             countdownInterval = setInterval(() => {
                 const now = new Date().getTime();
                 const gap = endTime - now;
-                if (gap <= 0) { clearInterval(countdownInterval); updateMatchCenter(); return; }
+
+                if (gap <= 0) {
+                    clearInterval(countdownInterval);
+                    showLiveState();
+                    return;
+                }
+
                 const second = 1000, minute = second * 60, hour = minute * 60, day = hour * 24;
                 document.getElementById('days').innerText = Math.floor(gap / day).toString().padStart(2, '0');
                 document.getElementById('hours').innerText = Math.floor((gap % day) / hour).toString().padStart(2, '0');
@@ -173,6 +169,7 @@
 
         updateMatchCenter();
         fetchBarcaNews();
+
         document.querySelector('#mobile-menu').addEventListener('click', () => {
             document.querySelector('#nav-links').classList.toggle('active');
         });
