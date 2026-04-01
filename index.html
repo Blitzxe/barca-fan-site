@@ -149,28 +149,45 @@
         }
 
         async function fetchBarcaNews() {
-            const apiKey = 'a144ee981ae649ba9f906b0a86b14635';
-            const proxyUrl = 'https://api.allorigins.win/raw?url=';
-            const targetUrl = `https://newsapi.org/v2/everything?q=FC+Barcelona&sortBy=publishedAt&language=en&pageSize=3&apiKey=${apiKey}`;
+            // Using a free RSS-to-JSON service to fetch a Barca news feed directly
+            const rssUrl = 'https://www.barcablaugranes.com/rss/current.xml';
+            const targetUrl = `https://api.rss2json.com/v1/api.json?rss_url=${encodeURIComponent(rssUrl)}`;
+            
             try {
-                const response = await fetch(proxyUrl + encodeURIComponent(targetUrl));
+                const response = await fetch(targetUrl);
                 const data = await response.json();
                 const container = document.getElementById('news-container');
+                
                 if (data.status === "ok") {
                     container.innerHTML = ''; 
-                    data.articles.forEach(article => {
+                    // Grab the 3 most recent articles
+                    const articles = data.items.slice(0, 3);
+                    
+                    articles.forEach(article => {
+                        // Extract image from the article or use a fallback
+                        let imgUrl = 'https://via.placeholder.com/400x200/111/edbb00?text=Barca+News';
+                        const imgMatch = article.content.match(/<img[^>]+src="([^">]+)"/);
+                        if (imgMatch) imgUrl = imgMatch[1];
+
+                        // Clean HTML tags from the description snippet
+                        let cleanDesc = article.description.replace(/<\/?[^>]+(>|$)/g, "");
+                        
                         container.innerHTML += `
                             <div class="news-card">
-                                <img src="${article.urlToImage || 'https://via.placeholder.com/400x200/111/edbb00?text=Barca+News'}" class="news-image">
+                                <img src="${imgUrl}" class="news-image" alt="News Image">
                                 <div class="news-content">
                                     <h3>${article.title}</h3>
-                                    <p>${article.description ? article.description.substring(0, 100) + '...' : 'Latest updates.'}</p>
-                                    <a href="${article.url}" target="_blank" class="gold-btn" style="font-size: 0.8rem; padding: 10px 20px; text-decoration: none;">Read More</a>
+                                    <p>${cleanDesc.substring(0, 100)}...</p>
+                                    <a href="${article.link}" target="_blank" class="gold-btn" style="font-size: 0.8rem; padding: 10px 20px; text-decoration: none;">Read More</a>
                                 </div>
                             </div>`;
                     });
+                } else {
+                    container.innerHTML = '<p>No news found at the moment.</p>';
                 }
-            } catch (e) { document.getElementById('news-container').innerHTML = '<p>Latest news arriving soon.</p>'; }
+            } catch (e) { 
+                document.getElementById('news-container').innerHTML = '<p>Latest news arriving soon.</p>'; 
+            }
         }
 
         updateMatchCenter();
